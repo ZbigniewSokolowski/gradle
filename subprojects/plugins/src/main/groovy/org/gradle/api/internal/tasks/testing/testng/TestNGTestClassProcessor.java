@@ -61,14 +61,7 @@ public class TestNGTestClassProcessor implements TestClassProcessor {
     }
 
     public void startProcessing(TestResultProcessor resultProcessor) {
-        ListenerBroadcast<TestResultProcessor> processors = new ListenerBroadcast<TestResultProcessor>(TestResultProcessor.class);
-        processors.add(resultProcessor);
-        if (testReportOn) {
-            //Do not generate the xml results unless the report is wanted explicitly
-            //TODO SF this check needs to be removed when new TestNG reports are turned on by default
-            processors.add(new TestNGJUnitXmlReportGenerator(testResultsDir));
-        }
-        TestResultProcessor resultProcessorChain = new CaptureTestOutputTestResultProcessor(processors.getSource(), outputRedirector);
+        TestResultProcessor resultProcessorChain = new CaptureTestOutputTestResultProcessor(resultProcessor, outputRedirector);
 
         testResultProcessor = new TestNGTestResultProcessorAdapter(resultProcessorChain, idGenerator);
 

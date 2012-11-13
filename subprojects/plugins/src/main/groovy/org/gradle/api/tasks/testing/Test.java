@@ -27,6 +27,8 @@ import org.gradle.api.internal.tasks.testing.TestFramework;
 import org.gradle.api.internal.tasks.testing.TestResultProcessor;
 import org.gradle.api.internal.tasks.testing.detection.DefaultTestExecuter;
 import org.gradle.api.internal.tasks.testing.detection.TestExecuter;
+import org.gradle.api.internal.tasks.testing.junit.binary.Binary2JUnitXmlGenerator;
+import org.gradle.api.internal.tasks.testing.junit.binary.BinaryReportGenerator;
 import org.gradle.api.internal.tasks.testing.junit.JUnitTestFramework;
 import org.gradle.api.internal.tasks.testing.logging.*;
 import org.gradle.api.internal.tasks.testing.results.*;
@@ -398,6 +400,18 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
         addTestListener(eventLogger);
         addTestOutputListener(eventLogger);
 
+        BinaryReportGenerator binaryReportGenerator = null;
+        if (testReport && testFramework instanceof TestNGTestFramework) {
+            //TODO SF this is obviously work in progress
+            File binaryResultsDir = new File(getTemporaryDir(), "binary-test-results");
+            getProject().delete(binaryResultsDir);
+            getProject().mkdir(binaryResultsDir);
+
+            binaryReportGenerator = new BinaryReportGenerator(binaryResultsDir);
+            addTestListener(binaryReportGenerator);
+            addTestOutputListener(binaryReportGenerator);
+        }
+
         ProgressLoggerFactory progressLoggerFactory = getServices().get(ProgressLoggerFactory.class);
         TestCountLogger testCountLogger = new TestCountLogger(progressLoggerFactory);
         addTestListener(testCountLogger);
@@ -406,6 +420,11 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
                 getTestListenerBroadcaster().getSource(), testOutputListenerBroadcaster.getSource());
 
         testExecuter.execute(this, resultProcessor);
+
+        if (binaryReportGenerator != null) {
+            new Binary2JUnitXmlGenerator().generate(getTestResultsDir(), binaryReportGenerator);
+        }
+
         testFramework.report();
         testFramework = null;
 
