@@ -16,29 +16,49 @@
 
 package org.gradle.api.internal.tasks.testing.junit.binary;
 
-import org.gradle.api.internal.tasks.testing.junit.result.XmlTestSuiteWriter;
-import org.gradle.api.internal.tasks.testing.junit.result.XmlTestSuiteWriterFactory;
+import org.apache.commons.io.IOUtils;
+import org.gradle.api.internal.tasks.testing.junit.result.SaxJUnitXmlResultWriter;
+import org.gradle.util.Clock;
 
+import javax.xml.stream.XMLOutputFactory;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+import static org.gradle.internal.UncheckedException.throwAsUncheckedException;
 
 /**
  * by Szczepan Faber, created at: 11/13/12
  */
 public class Binary2JUnitXmlGenerator {
 
-    XmlTestSuiteWriterFactory factory = new XmlTestSuiteWriterFactory();
-
     public void generate(File testResultsDir, BinaryReportGenerator binaryReportGenerator) {
+        Clock clock = new Clock();
+        SaxJUnitXmlResultWriter saxWriter = new SaxJUnitXmlResultWriter(getHostname(), binaryReportGenerator, XMLOutputFactory.newFactory());
         for (String className: binaryReportGenerator.tests.keySet()) {
             BinaryTestClassResult classResult = binaryReportGenerator.tests.get(className);
-            XmlTestSuiteWriter writer = factory.create(testResultsDir, className, classResult.getStartTime());
-            binaryReportGenerator.populateOutputs(className, writer);
 
-            for (BinaryTestResult result : classResult.getResults()) {
-                writer.addTestCase(result.name, result.result.getResultType(),
-                    result.result.getEndTime() - result.result.getStartTime(), result.result.getExceptions());
+            Writer output = null;
+            try {
+                output = new FileWriter(new File(testResultsDir, "TEST-" + className + ".xml"));
+                saxWriter.write(className, classResult, output);
+            } catch (IOException e) {
+                throw throwAsUncheckedException(e);
+            } finally {
+                IOUtils.closeQuietly(output);
             }
-            writer.writeSuiteData(classResult.getEndTime() - classResult.getStartTime());
+        }
+        System.out.println("Generation of xml results took: " + clock.getTime());
+    }
+
+    private static String getHostname() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            return "localhost";
         }
     }
 }

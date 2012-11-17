@@ -17,7 +17,7 @@
 package org.gradle.api.internal.tasks.testing.junit.binary;
 
 import org.apache.commons.io.IOUtils;
-import org.gradle.api.internal.tasks.testing.junit.result.XmlTestSuiteWriter;
+import org.gradle.api.Transformer;
 import org.gradle.api.tasks.testing.*;
 import org.gradle.internal.UncheckedException;
 
@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * by Szczepan Faber, created at: 11/13/12
  */
-public class BinaryReportGenerator implements TestListener, TestOutputListener {
+public class BinaryReportGenerator implements TestListener, TestOutputListener, OutputsProvider {
 
     final Map<String, BinaryTestClassResult> tests = new HashMap<String, BinaryTestClassResult>();
     private final File resultsDir;
@@ -70,7 +70,7 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener {
             //this means that we receive an output before even starting any class. We don't have a place for such output.
             return;
         }
-        File outputsFile = outputsFile(className);
+        File outputsFile = outputsFile(className, outputEvent.getDestination());
         ObjectOutputStream out = null;
         try {
             if (outputsFile.exists()) {
@@ -78,7 +78,6 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener {
             } else {
                 out = new ObjectOutputStream(new FileOutputStream(outputsFile));
             }
-            out.writeBoolean(outputEvent.getDestination() == TestOutputEvent.Destination.StdOut);
             out.writeUTF(outputEvent.getMessage());
             out.close();
         } catch (IOException e) {
@@ -88,31 +87,35 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener {
         }
     }
 
-    private File outputsFile(String className) {
-        return new File(resultsDir, className + ".output.bin");
+    private File outputsFile(String className, TestOutputEvent.Destination destination) {
+        return destination == TestOutputEvent.Destination.StdOut? standardOutputFile(className) : standardErrorFile(className);
     }
 
-    public void populateOutputs(String className, XmlTestSuiteWriter testSuiteWriter) {
-        File file = outputsFile(className);
+    private File standardErrorFile(String className) {
+        return new File(resultsDir, className + ".stderr.bin");
+    }
+
+    private File standardOutputFile(String className) {
+        return new File(resultsDir, className + ".stdout.bin");
+    }
+
+    public void provideOutputs(String className, TestOutputEvent.Destination destination, Transformer<String, String> transformer, Writer writer) {
+        File file = outputsFile(className, destination);
         if (!file.exists()) {
             return; //test has no outputs
         }
-        StringBuilder out = new StringBuilder();
         ObjectInputStream in = null;
         try {
             in = new ObjectInputStream(new FileInputStream(file));
             while(true) {
-                boolean stdOut = in.readBoolean();
-                TestOutputEvent.Destination dest = stdOut? TestOutputEvent.Destination.StdOut : TestOutputEvent.Destination.StdErr;
                 String outputMessage = in.readUTF();
-                testSuiteWriter.addOutput(dest, outputMessage);
-                out.append(outputMessage);
+                writer.write(transformer.transform(outputMessage));
             }
         } catch (EOFException e) {
-            //ignore, the entire file was read
-            return; //TODO SF ugly
+            //we're done
+            //TODO SF ugly
         } catch (IOException e) {
-            UncheckedException.throwAsUncheckedException(e);
+            throw UncheckedException.throwAsUncheckedException(e);
         } finally {
             IOUtils.closeQuietly(in);
         }

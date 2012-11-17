@@ -17,6 +17,7 @@ package org.gradle.api.internal.tasks.testing.junit.report;
 
 import org.gradle.api.GradleException;
 import org.gradle.reporting.HtmlReportRenderer;
+import org.gradle.util.Clock;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -49,8 +50,10 @@ public class DefaultTestReport implements TestReporter {
     }
 
     public void generateReport() {
+        Clock clock = new Clock();
         AllTestResults model = loadModel();
         generateFiles(model);
+        System.out.println("Generation of html result took " + clock.getTime());
     }
 
     private AllTestResults loadModel() {

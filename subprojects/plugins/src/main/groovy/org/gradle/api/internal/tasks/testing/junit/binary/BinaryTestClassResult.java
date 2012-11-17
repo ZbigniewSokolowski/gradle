@@ -16,6 +16,8 @@
 
 package org.gradle.api.internal.tasks.testing.junit.binary;
 
+import org.gradle.api.tasks.testing.TestResult;
+
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,12 +30,16 @@ public class BinaryTestClassResult implements Serializable {
     Set<BinaryTestResult> results = new HashSet<BinaryTestResult>();
     private final long startTime;
     private long endTime;
+    private int failuresCount;
 
     public BinaryTestClassResult(long startTime) {
         this.startTime = startTime;
     }
 
     public void add(BinaryTestResult binaryResult) {
+        if (binaryResult.result.getResultType() == TestResult.ResultType.FAILURE) {
+            failuresCount++;
+        }
         results.add(binaryResult);
     }
 
@@ -51,5 +57,13 @@ public class BinaryTestClassResult implements Serializable {
 
     public long getEndTime() {
         return endTime;
+    }
+
+    public int getTestsCount() {
+        return results.size();
+    }
+
+    public int getFailuresCount() {
+        return failuresCount;
     }
 }
