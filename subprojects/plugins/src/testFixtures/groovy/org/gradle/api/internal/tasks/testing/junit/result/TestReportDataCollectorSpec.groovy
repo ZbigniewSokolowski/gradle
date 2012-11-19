@@ -16,23 +16,17 @@
 
 package org.gradle.api.internal.tasks.testing.junit.result
 
-import spock.lang.Specification
-import org.junit.Rule
-import org.gradle.util.TemporaryFolder
-import org.gradle.api.internal.tasks.testing.DefaultTestSuiteDescriptor
 import org.gradle.api.internal.tasks.testing.results.DefaultTestResult
-import org.gradle.api.tasks.testing.TestResult
+import org.gradle.util.TemporaryFolder
+import org.junit.Rule
+import spock.lang.Specification
+import org.gradle.api.internal.tasks.testing.*
 
 import static java.util.Arrays.asList
-import org.gradle.api.internal.tasks.testing.DefaultTestClassDescriptor
-import org.gradle.api.internal.tasks.testing.DecoratingTestDescriptor
-import org.gradle.api.internal.tasks.testing.DefaultTestDescriptor
-import org.gradle.api.internal.tasks.testing.DefaultTestOutputEvent
-import org.gradle.api.tasks.testing.TestOutputEvent
-
 import static org.gradle.api.tasks.testing.TestOutputEvent.Destination.StdErr
 import static org.gradle.api.tasks.testing.TestOutputEvent.Destination.StdOut
-import static org.gradle.api.tasks.testing.TestResult.ResultType.*
+import static org.gradle.api.tasks.testing.TestResult.ResultType.FAILURE
+import static org.gradle.api.tasks.testing.TestResult.ResultType.SUCCESS
 
 /**
  * by Szczepan Faber, created at: 11/19/12
@@ -41,6 +35,8 @@ class TestReportDataCollectorSpec extends Specification {
 
     @Rule private TemporaryFolder temp = new TemporaryFolder()
     private collector = new TestReportDataCollector(temp.dir)
+
+    //TODO SF add concurrent coverage for this and CachingFileWriter
 
     def "validates results directory"() {
         temp.file("foo.txt").createNewFile()

@@ -18,14 +18,15 @@ package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.apache.commons.io.IOUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static org.gradle.internal.UncheckedException.throwAsUncheckedException;
 
 /**
  * by Szczepan Faber, created at: 11/19/12
@@ -34,6 +35,11 @@ public class CachingFileWriter {
 
     final LinkedHashMap<File, OutputStream> openFiles = new LinkedHashMap<File, OutputStream>();
     private final Lock lock = new ReentrantLock();
+    private final int openFilesCount;
+
+    public CachingFileWriter(int openFilesCount) {
+        this.openFilesCount = openFilesCount;
+    }
 
     public void closeAll() {
         for (OutputStream outputStream : openFiles.values()) {
@@ -53,7 +59,7 @@ public class CachingFileWriter {
             } else {
                 out = new FileOutputStream(file, true);
                 openFiles.put(file, out);
-                if (openFiles.size() > 10) {
+                if (openFiles.size() > openFilesCount) {
                     //remove first
                     Iterator<Map.Entry<File, OutputStream>> iterator = openFiles.entrySet().iterator();
                     IOUtils.closeQuietly(iterator.next().getValue());
@@ -63,7 +69,7 @@ public class CachingFileWriter {
             out.write(text.getBytes());
         } catch (IOException e) {
             IOUtils.closeQuietly(out);
-            throw throwAsUncheckedException(e);
+            throw new RuntimeException("Problems writing to file: " + file, e);
         } finally {
             lock.unlock();
         }

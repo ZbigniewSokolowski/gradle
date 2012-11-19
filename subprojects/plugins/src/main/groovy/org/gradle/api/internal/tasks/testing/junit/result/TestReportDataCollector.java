@@ -21,8 +21,12 @@ import org.gradle.api.tasks.testing.*;
 import org.gradle.internal.UncheckedException;
 import org.gradle.util.TextUtil;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * by Szczepan Faber, created at: 11/13/12
@@ -31,7 +35,7 @@ public class TestReportDataCollector implements TestListener, TestOutputListener
 
     private final Map<String, TestClassResult> results = new HashMap<String, TestClassResult>();
     private final File resultsDir;
-    CachingFileWriter cachingFileWriter = new CachingFileWriter();
+    CachingFileWriter cachingFileWriter = new CachingFileWriter(10); //TODO SF calculate based on parallel forks
 
     public TestReportDataCollector(File resultsDir) {
         this.resultsDir = resultsDir;
