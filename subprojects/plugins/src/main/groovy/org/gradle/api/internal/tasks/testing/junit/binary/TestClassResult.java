@@ -18,33 +18,32 @@ package org.gradle.api.internal.tasks.testing.junit.binary;
 
 import org.gradle.api.tasks.testing.TestResult;
 
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
  * by Szczepan Faber, created at: 11/13/12
  */
-public class BinaryTestClassResult implements Serializable {
+public class TestClassResult {
 
-    Set<BinaryTestResult> results = new HashSet<BinaryTestResult>();
+    Set<TestMethodResult> methodResults = new HashSet<TestMethodResult>();
     private final long startTime;
     private long endTime;
     private int failuresCount;
 
-    public BinaryTestClassResult(long startTime) {
+    public TestClassResult(long startTime) {
         this.startTime = startTime;
     }
 
-    public void add(BinaryTestResult binaryResult) {
-        if (binaryResult.result.getResultType() == TestResult.ResultType.FAILURE) {
+    public void add(TestMethodResult methodResult) {
+        if (methodResult.result.getResultType() == TestResult.ResultType.FAILURE) {
             failuresCount++;
         }
-        results.add(binaryResult);
+        methodResults.add(methodResult);
     }
 
-    public Set<BinaryTestResult> getResults() {
-        return results;
+    public Set<TestMethodResult> getResults() {
+        return methodResults;
     }
 
     public long getStartTime() {
@@ -55,15 +54,15 @@ public class BinaryTestClassResult implements Serializable {
         this.endTime = endTime;
     }
 
-    public long getEndTime() {
-        return endTime;
-    }
-
     public int getTestsCount() {
-        return results.size();
+        return methodResults.size();
     }
 
     public int getFailuresCount() {
         return failuresCount;
+    }
+
+    public long getDuration() {
+        return endTime - startTime;
     }
 }

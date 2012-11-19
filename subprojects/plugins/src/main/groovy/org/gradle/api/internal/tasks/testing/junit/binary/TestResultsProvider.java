@@ -16,20 +16,17 @@
 
 package org.gradle.api.internal.tasks.testing.junit.binary;
 
-import org.gradle.api.tasks.testing.TestResult;
+import org.gradle.api.tasks.testing.TestOutputEvent;
 
-import java.io.Serializable;
+import java.io.Writer;
+import java.util.Map;
 
 /**
- * by Szczepan Faber, created at: 11/13/12
+ * by Szczepan Faber, created at: 11/16/12
  */
-public class BinaryTestResult implements Serializable {
+public interface TestResultsProvider {
 
-    public final String name;
-    public final TestResult result;
+    void provideOutputs(String className, TestOutputEvent.Destination destination, Writer writer);
 
-    public BinaryTestResult(String name, TestResult result) {
-        this.name = name;
-        this.result = result;
-    }
+    Map<String, TestClassResult> provideResults();
 }

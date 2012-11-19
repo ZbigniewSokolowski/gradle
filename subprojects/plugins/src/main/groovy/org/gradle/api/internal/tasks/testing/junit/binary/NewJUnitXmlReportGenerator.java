@@ -27,24 +27,27 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 import static org.gradle.internal.UncheckedException.throwAsUncheckedException;
 
 /**
  * by Szczepan Faber, created at: 11/13/12
  */
-public class Binary2JUnitXmlGenerator {
+public class NewJUnitXmlReportGenerator {
 
-    public void generate(File testResultsDir, BinaryReportGenerator binaryReportGenerator) {
+    public void generate(File testResultsDir, TestResultsProvider testResultsProvider) {
         Clock clock = new Clock();
-        SaxJUnitXmlResultWriter saxWriter = new SaxJUnitXmlResultWriter(getHostname(), binaryReportGenerator, XMLOutputFactory.newFactory());
-        for (String className: binaryReportGenerator.tests.keySet()) {
-            BinaryTestClassResult classResult = binaryReportGenerator.tests.get(className);
+        SaxJUnitXmlResultWriter saxWriter = new SaxJUnitXmlResultWriter(getHostname(), testResultsProvider, XMLOutputFactory.newFactory());
+        Map<String, TestClassResult> results = testResultsProvider.provideResults();
+        for (Map.Entry<String, TestClassResult> entry : results.entrySet()) {
+            String className = entry.getKey();
+            TestClassResult result = entry.getValue();
 
             Writer output = null;
             try {
                 output = new FileWriter(new File(testResultsDir, "TEST-" + className + ".xml"));
-                saxWriter.write(className, classResult, output);
+                saxWriter.write(className, result, output);
             } catch (IOException e) {
                 throw throwAsUncheckedException(e);
             } finally {

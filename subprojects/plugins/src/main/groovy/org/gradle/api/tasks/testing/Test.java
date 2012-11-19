@@ -27,8 +27,8 @@ import org.gradle.api.internal.tasks.testing.TestFramework;
 import org.gradle.api.internal.tasks.testing.TestResultProcessor;
 import org.gradle.api.internal.tasks.testing.detection.DefaultTestExecuter;
 import org.gradle.api.internal.tasks.testing.detection.TestExecuter;
-import org.gradle.api.internal.tasks.testing.junit.binary.Binary2JUnitXmlGenerator;
-import org.gradle.api.internal.tasks.testing.junit.binary.BinaryReportGenerator;
+import org.gradle.api.internal.tasks.testing.junit.binary.NewJUnitXmlReportGenerator;
+import org.gradle.api.internal.tasks.testing.junit.binary.TestReportDataCollector;
 import org.gradle.api.internal.tasks.testing.junit.JUnitTestFramework;
 import org.gradle.api.internal.tasks.testing.logging.*;
 import org.gradle.api.internal.tasks.testing.results.*;
@@ -400,16 +400,16 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
         addTestListener(eventLogger);
         addTestOutputListener(eventLogger);
 
-        BinaryReportGenerator binaryReportGenerator = null;
+        TestReportDataCollector testReportDataCollector = null;
         if (testReport && testFramework instanceof TestNGTestFramework) {
             //TODO SF this is obviously work in progress
             File binaryResultsDir = new File(getTemporaryDir(), "binary-test-results");
             getProject().delete(binaryResultsDir);
             getProject().mkdir(binaryResultsDir);
 
-            binaryReportGenerator = new BinaryReportGenerator(binaryResultsDir);
-            addTestListener(binaryReportGenerator);
-            addTestOutputListener(binaryReportGenerator);
+            testReportDataCollector = new TestReportDataCollector(binaryResultsDir);
+            addTestListener(testReportDataCollector);
+            addTestOutputListener(testReportDataCollector);
         }
 
         ProgressLoggerFactory progressLoggerFactory = getServices().get(ProgressLoggerFactory.class);
@@ -421,8 +421,8 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
 
         testExecuter.execute(this, resultProcessor);
 
-        if (binaryReportGenerator != null) {
-            new Binary2JUnitXmlGenerator().generate(getTestResultsDir(), binaryReportGenerator);
+        if (testReportDataCollector != null) {
+            new NewJUnitXmlReportGenerator().generate(getTestResultsDir(), testReportDataCollector);
         }
 
         testFramework.report();

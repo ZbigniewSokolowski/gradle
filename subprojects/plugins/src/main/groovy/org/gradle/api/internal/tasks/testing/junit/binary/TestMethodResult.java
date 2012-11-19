@@ -16,15 +16,24 @@
 
 package org.gradle.api.internal.tasks.testing.junit.binary;
 
-import org.gradle.api.Transformer;
-import org.gradle.api.tasks.testing.TestOutputEvent;
+import org.gradle.api.tasks.testing.TestResult;
 
-import java.io.Writer;
+import java.io.Serializable;
 
 /**
- * by Szczepan Faber, created at: 11/16/12
+ * by Szczepan Faber, created at: 11/13/12
  */
-public interface OutputsProvider {
+public class TestMethodResult {
 
-    void provideOutputs(String className, TestOutputEvent.Destination destination, Transformer<String, String> transformer, Writer writer);
+    public final String name;
+    public final TestResult result;
+
+    public TestMethodResult(String name, TestResult result) {
+        this.name = name;
+        this.result = result;
+    }
+
+    public long getDuration() {
+        return result.getEndTime() - result.getStartTime();
+    }
 }

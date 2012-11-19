@@ -17,10 +17,10 @@
 package org.gradle.api.internal.tasks.testing.junit.result
 
 import spock.lang.Specification
-import org.gradle.api.internal.tasks.testing.junit.binary.BinaryTestClassResult
-import org.gradle.api.internal.tasks.testing.junit.binary.OutputsProvider
+import org.gradle.api.internal.tasks.testing.junit.binary.TestClassResult
+import org.gradle.api.internal.tasks.testing.junit.binary.TestResultsProvider
 import org.gradle.api.tasks.testing.TestOutputEvent
-import org.gradle.api.internal.tasks.testing.junit.binary.BinaryTestResult
+import org.gradle.api.internal.tasks.testing.junit.binary.TestMethodResult
 import org.gradle.api.internal.tasks.testing.results.DefaultTestResult
 import org.gradle.api.tasks.testing.TestResult
 
@@ -33,21 +33,21 @@ import javax.xml.stream.XMLOutputFactory
  */
 class SaxJUnitXmlResultWriterTest extends Specification {
 
-    def provider = Mock(OutputsProvider)
+    def provider = Mock(TestResultsProvider)
     def generator = new SaxJUnitXmlResultWriter("localhost", provider, XMLOutputFactory.newFactory())
 
     def "test"() {
         StringWriter sw = new StringWriter()
-        BinaryTestClassResult result = new BinaryTestClassResult(System.currentTimeMillis())
-        result.add(new BinaryTestResult("some test", new DefaultTestResult(TestResult.ResultType.SUCCESS, 10, 25, 1, 1, 0, emptyList())))
-        result.add(new BinaryTestResult("some failing test", new DefaultTestResult(TestResult.ResultType.FAILURE, 15, 25, 1, 0, 1, asList(new RuntimeException("Boo! ]]> cdata check!")))))
+        TestClassResult result = new TestClassResult(System.currentTimeMillis())
+        result.add(new TestMethodResult("some test", new DefaultTestResult(TestResult.ResultType.SUCCESS, 10, 25, 1, 1, 0, emptyList())))
+        result.add(new TestMethodResult("some failing test", new DefaultTestResult(TestResult.ResultType.FAILURE, 15, 25, 1, 0, 1, asList(new RuntimeException("Boo! ]]> cdata check!")))))
 
-        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdOut, _, sw) >> { args ->
+        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdOut, sw) >> { args ->
             sw.write("1st output message\n")
             sw.write("2nd output message\n")
             sw.write(args[2].transform("cdata check: ]]> end\n"))
         }
-        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdErr, _, sw) >> { /* no std err */}
+        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdErr, sw) >> { /* no std err */}
 
         when:
         generator.write("com.foo.FooTest", result, sw)

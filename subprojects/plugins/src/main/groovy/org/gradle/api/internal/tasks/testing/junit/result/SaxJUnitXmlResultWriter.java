@@ -17,10 +17,9 @@
 package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.apache.tools.ant.util.DateUtils;
-import org.gradle.api.Transformer;
-import org.gradle.api.internal.tasks.testing.junit.binary.BinaryTestClassResult;
-import org.gradle.api.internal.tasks.testing.junit.binary.BinaryTestResult;
-import org.gradle.api.internal.tasks.testing.junit.binary.OutputsProvider;
+import org.gradle.api.internal.tasks.testing.junit.binary.TestClassResult;
+import org.gradle.api.internal.tasks.testing.junit.binary.TestMethodResult;
+import org.gradle.api.internal.tasks.testing.junit.binary.TestResultsProvider;
 import org.gradle.api.tasks.testing.TestOutputEvent;
 import org.gradle.api.tasks.testing.TestResult;
 import org.gradle.internal.UncheckedException;
@@ -34,22 +33,24 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Set;
 
+import static org.gradle.util.TextUtil.escapeCDATA;
+
 /**
  * by Szczepan Faber, created at: 11/13/12
  */
 public class SaxJUnitXmlResultWriter {
 
     private final String hostName;
-    private final OutputsProvider outputsProvider;
+    private final TestResultsProvider testResultsProvider;
     private final XMLOutputFactory xmlOutputFactory;
 
-    public SaxJUnitXmlResultWriter(String hostName, OutputsProvider outputsProvider, XMLOutputFactory xmlOutputFactory) {
+    public SaxJUnitXmlResultWriter(String hostName, TestResultsProvider testResultsProvider, XMLOutputFactory xmlOutputFactory) {
         this.hostName = hostName;
-        this.outputsProvider = outputsProvider;
+        this.testResultsProvider = testResultsProvider;
         this.xmlOutputFactory = xmlOutputFactory;
     }
 
-    public void write(String className, BinaryTestClassResult result, Writer output) throws IOException {
+    public void write(String className, TestClassResult result, Writer output) throws IOException {
         try {
             XMLStreamWriter writer = xmlOutputFactory.createXMLStreamWriter(output);
             writer.writeStartDocument("UTF-8", "1.0");
@@ -61,7 +62,7 @@ public class SaxJUnitXmlResultWriter {
             writer.writeAttribute("errors", "0");
             writer.writeAttribute("timestamp", DateUtils.format(result.getStartTime(), DateUtils.ISO8601_DATETIME_PATTERN));
             writer.writeAttribute("hostname", hostName);
-            writer.writeAttribute("time", String.valueOf((result.getEndTime() - result.getStartTime()) / 1000.0));
+            writer.writeAttribute("time", String.valueOf(result.getDuration() / 1000.0));
 
             writer.writeCharacters("\n  ");
             writer.writeEmptyElement("properties");
@@ -70,12 +71,12 @@ public class SaxJUnitXmlResultWriter {
 
             writer.writeCharacters("\n  ");
             output.write("<system-out><![CDATA[");
-            outputsProvider.provideOutputs(className, TestOutputEvent.Destination.StdOut, new XmlEncoder(), output);
+            testResultsProvider.provideOutputs(className, TestOutputEvent.Destination.StdOut, output);
             output.write("]]></system-out>");
 
             writer.writeCharacters("\n  ");
             output.write("<system-err><![CDATA[");
-            outputsProvider.provideOutputs(className, TestOutputEvent.Destination.StdErr, new XmlEncoder(), output);
+            testResultsProvider.provideOutputs(className, TestOutputEvent.Destination.StdErr, output);
             output.write("]]></system-err>\n");
 
             writer.writeEndElement();
@@ -85,16 +86,16 @@ public class SaxJUnitXmlResultWriter {
         }
     }
 
-    private void writeTests(XMLStreamWriter writer, Set<BinaryTestResult> results, String className) throws XMLStreamException {
-        for (BinaryTestResult result : results) {
+    private void writeTests(XMLStreamWriter writer, Set<TestMethodResult> methodResults, String className) throws XMLStreamException {
+        for (TestMethodResult methodResult : methodResults) {
             writer.writeCharacters("\n    ");
-            String testCase = result.result.getResultType() == TestResult.ResultType.SKIPPED ? "ignored-testcase" : "testcase";
+            String testCase = methodResult.result.getResultType() == TestResult.ResultType.SKIPPED ? "ignored-testcase" : "testcase";
             writer.writeStartElement(testCase);
-            writer.writeAttribute("name", result.name);
+            writer.writeAttribute("name", methodResult.name);
             writer.writeAttribute("classname", className);
-            writer.writeAttribute("time", String.valueOf((result.result.getEndTime() - result.result.getStartTime()) / 1000.0));
+            writer.writeAttribute("time", String.valueOf(methodResult.getDuration() / 1000.0));
 
-            for (Throwable failure : result.result.getExceptions()) {
+            for (Throwable failure : methodResult.result.getExceptions()) {
                 writer.writeCharacters("\n      ");
                 writer.writeStartElement("failure");
                 writer.writeAttribute("message", failureMessage(failure));
@@ -106,16 +107,6 @@ public class SaxJUnitXmlResultWriter {
             }
 
             writer.writeEndElement();
-        }
-    }
-
-    private static String escapeCDATA(String input) {
-        return input.replaceAll("]]>", "]]&gt;");
-    }
-
-    private static class XmlEncoder implements Transformer<String, String> {
-        public String transform(String original) {
-            return escapeCDATA(original);
         }
     }
 

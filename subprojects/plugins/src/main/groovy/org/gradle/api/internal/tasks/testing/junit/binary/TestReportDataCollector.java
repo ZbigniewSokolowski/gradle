@@ -17,9 +17,9 @@
 package org.gradle.api.internal.tasks.testing.junit.binary;
 
 import org.apache.commons.io.IOUtils;
-import org.gradle.api.Transformer;
 import org.gradle.api.tasks.testing.*;
 import org.gradle.internal.UncheckedException;
+import org.gradle.util.TextUtil;
 
 import java.io.*;
 import java.util.*;
@@ -27,12 +27,13 @@ import java.util.*;
 /**
  * by Szczepan Faber, created at: 11/13/12
  */
-public class BinaryReportGenerator implements TestListener, TestOutputListener, OutputsProvider {
+public class TestReportDataCollector implements TestListener, TestOutputListener, TestResultsProvider {
 
-    final Map<String, BinaryTestClassResult> tests = new HashMap<String, BinaryTestClassResult>();
+    private final Map<String, TestClassResult> tests = new HashMap<String, TestClassResult>();
     private final File resultsDir;
+    private CachingFileWriter cachingFileWriter = new CachingFileWriter();
 
-    public BinaryReportGenerator(File resultsDir) {
+    public TestReportDataCollector(File resultsDir) {
         this.resultsDir = resultsDir;
     }
 
@@ -40,15 +41,12 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
     }
 
     public void afterSuite(TestDescriptor suite, TestResult result) {
-        BinaryTestClassResult classResult = tests.get(suite.getClassName());
+        TestClassResult classResult = tests.get(suite.getClassName());
         if (classResult != null) {
             classResult.setEndTime(result.getEndTime());
         }
         if (suite.getParent() == null) {
-            for (OutputStream outputStream : openFiles.values()) {
-                IOUtils.closeQuietly(outputStream);
-            }
-            openFiles.clear();
+            cachingFileWriter.closeAll();
         }
     }
 
@@ -57,44 +55,27 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
 
     public void afterTest(TestDescriptor testDescriptor, TestResult result) {
         if (!testDescriptor.isComposite()) {
-            BinaryTestResult binaryResult = new BinaryTestResult(testDescriptor.getName(), result);
-            BinaryTestClassResult classResult = tests.get(testDescriptor.getClassName());
+            TestMethodResult methodResult = new TestMethodResult(testDescriptor.getName(), result);
+            TestClassResult classResult = tests.get(testDescriptor.getClassName());
             if (classResult == null) {
-                classResult = new BinaryTestClassResult(result.getStartTime());
+                classResult = new TestClassResult(result.getStartTime());
                 tests.put(testDescriptor.getClassName(), classResult);
             }
 
-            classResult.add(binaryResult);
+            classResult.add(methodResult);
         }
     }
-
-    LinkedHashMap<String, OutputStream> openFiles = new LinkedHashMap<String, OutputStream>();
 
     public void onOutput(TestDescriptor testDescriptor, TestOutputEvent outputEvent) {
         String className = testDescriptor.getClassName();
         if (className == null) {
-            //TODO SF ugly
-            //this means that we receive an output before even starting any class. We don't have a place for such output.
+            //this means that we receive an output before even starting any class.
+            //we don't have a place for such output in any of the reports so skipping.
             return;
         }
-        try {
-            OutputStream out;
-            if (openFiles.containsKey(className + outputEvent.getDestination())) {
-                out = openFiles.get(className + outputEvent.getDestination());
-            } else {
-                File outputsFile = outputsFile(className, outputEvent.getDestination());
-                out = new FileOutputStream(outputsFile, true);
-                openFiles.put(className + outputEvent.getDestination(), out);
-                if (openFiles.size() > 10) {
-                    Iterator<Map.Entry<String, OutputStream>> iterator = openFiles.entrySet().iterator();
-                    IOUtils.closeQuietly(iterator.next().getValue());
-                    iterator.remove();
-                }
-            }
-            out.write(outputEvent.getMessage().getBytes());
-        } catch(IOException e) {
-            throw UncheckedException.throwAsUncheckedException(e);
-        }
+        //the format is optimized for the junit xml results
+        String message = TextUtil.escapeCDATA(outputEvent.getMessage());
+        cachingFileWriter.write(outputsFile(className, outputEvent.getDestination()), message.getBytes());
     }
 
     private File outputsFile(String className, TestOutputEvent.Destination destination) {
@@ -109,7 +90,7 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
         return new File(resultsDir, className + ".stdout.bin");
     }
 
-    public void provideOutputs(String className, TestOutputEvent.Destination destination, Transformer<String, String> transformer, Writer writer) {
+    public void provideOutputs(String className, TestOutputEvent.Destination destination, Writer writer) {
         File file = outputsFile(className, destination);
         if (!file.exists()) {
             return; //test has no outputs
@@ -118,13 +99,14 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
         try {
             in = new FileInputStream(file);
             IOUtils.copy(in, writer);
-        } catch (EOFException e) {
-            //we're done
-            //TODO SF ugly
         } catch (IOException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         } finally {
             IOUtils.closeQuietly(in);
         }
+    }
+
+    public Map<String, TestClassResult> provideResults() {
+        return tests;
     }
 }

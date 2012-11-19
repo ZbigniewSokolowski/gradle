@@ -30,12 +30,12 @@ class Binary2JUnitXmlGeneratorSpec extends Specification {
 
     def "generates xml results"() {
         given:
-        def binaryGenerator = new BinaryReportGenerator(temp.createDir("bin"))
+        def binaryGenerator = new TestReportDataCollector(temp.createDir("bin"))
         binaryGenerator.beforeSuite(new DefaultTestSuiteDescriptor("1.1", "Gradle tests"))
         binaryGenerator.beforeSuite(new DefaultTestSuiteDescriptor("1.1", "Gradle tests"))
 
 
-        def generator = new Binary2JUnitXmlGenerator()
+        def generator = new NewJUnitXmlReportGenerator()
         def xml = temp.createDir("xml")
 
         when:
