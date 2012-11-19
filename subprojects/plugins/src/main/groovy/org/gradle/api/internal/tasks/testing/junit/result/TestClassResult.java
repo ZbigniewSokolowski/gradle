@@ -34,11 +34,12 @@ public class TestClassResult {
         this.startTime = startTime;
     }
 
-    public void add(TestMethodResult methodResult) {
+    public TestClassResult add(TestMethodResult methodResult) {
         if (methodResult.result.getResultType() == TestResult.ResultType.FAILURE) {
             failuresCount++;
         }
         methodResults.add(methodResult);
+        return this;
     }
 
     public Set<TestMethodResult> getResults() {

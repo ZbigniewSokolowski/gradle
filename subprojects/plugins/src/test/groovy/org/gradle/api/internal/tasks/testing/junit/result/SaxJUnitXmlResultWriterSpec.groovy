@@ -32,11 +32,12 @@ import org.gradle.integtests.fixtures.JUnitTestClassExecutionResult
 
 import static org.hamcrest.core.IsEqual.equalTo
 import static org.hamcrest.Matchers.equalTo
+import static org.gradle.api.tasks.testing.TestResult.ResultType.*
 
 /**
  * by Szczepan Faber, created at: 11/16/12
  */
-class SaxJUnitXmlResultWriterTest extends Specification {
+class SaxJUnitXmlResultWriterSpec extends Specification {
 
     private provider = Mock(TestResultsProvider)
     private generator = new SaxJUnitXmlResultWriter("localhost", provider, XMLOutputFactory.newFactory())
@@ -44,10 +45,10 @@ class SaxJUnitXmlResultWriterTest extends Specification {
     def "writes xml JUnit result"() {
         StringWriter sw = new StringWriter()
         TestClassResult result = new TestClassResult(new Date(1353344968049).getTime())
-        result.add(new TestMethodResult("some test", new DefaultTestResult(TestResult.ResultType.SUCCESS, 10, 25, 1, 1, 0, emptyList())))
-        result.add(new TestMethodResult("some test two", new DefaultTestResult(TestResult.ResultType.SUCCESS, 10, 25, 1, 1, 0, emptyList())))
-        result.add(new TestMethodResult("some failing test", new DefaultTestResult(TestResult.ResultType.FAILURE, 15, 25, 1, 0, 1, asList(new RuntimeException("Boo! ]]> cdata check!")))))
-        result.add(new TestMethodResult("some skipped test", new DefaultTestResult(TestResult.ResultType.SKIPPED, 15, 25, 1, 0, 1, asList())))
+        result.add(new TestMethodResult("some test", new DefaultTestResult(SUCCESS, 10, 25, 1, 1, 0, emptyList())))
+        result.add(new TestMethodResult("some test two", new DefaultTestResult(SUCCESS, 10, 25, 1, 1, 0, emptyList())))
+        result.add(new TestMethodResult("some failing test", new DefaultTestResult(FAILURE, 15, 25, 1, 0, 1, asList(new RuntimeException("Boo! ]]> cdata check!")))))
+        result.add(new TestMethodResult("some skipped test", new DefaultTestResult(SKIPPED, 15, 25, 1, 0, 1, asList())))
 
         provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdOut, sw) >> {
             sw.write("1st output message\n")
@@ -93,7 +94,7 @@ cdata check: ]]&gt; end
     def "writes results with empty outputs"() {
         StringWriter sw = new StringWriter()
         TestClassResult result = new TestClassResult(new Date(1353344968049).getTime())
-        result.add(new TestMethodResult("some test", new DefaultTestResult(TestResult.ResultType.SUCCESS, 100, 300, 1, 1, 0, emptyList())))
+        result.add(new TestMethodResult("some test", new DefaultTestResult(SUCCESS, 100, 300, 1, 1, 0, emptyList())))
 
         when:
         generator.write("com.foo.FooTest", result, sw)

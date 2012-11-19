@@ -17,6 +17,7 @@
 package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.apache.commons.io.IOUtils;
+import org.gradle.api.GradleException;
 import org.gradle.util.Clock;
 
 import javax.xml.stream.XMLOutputFactory;
@@ -28,27 +29,35 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
 
-import static org.gradle.internal.UncheckedException.throwAsUncheckedException;
-
 /**
- * by Szczepan Faber, created at: 11/13/12
+ * This will replace the existing report generator.
  */
 public class NewJUnitXmlReportGenerator {
 
-    public void generate(File testResultsDir, TestResultsProvider testResultsProvider) {
+    private final File testResultsDir;
+    private final TestResultsProvider testResultsProvider;
+    SaxJUnitXmlResultWriter saxWriter;
+
+    public NewJUnitXmlReportGenerator(File testResultsDir, TestResultsProvider testResultsProvider) {
+        this.testResultsDir = testResultsDir;
+        this.testResultsProvider = testResultsProvider;
+        this.saxWriter = new SaxJUnitXmlResultWriter(getHostname(), testResultsProvider, XMLOutputFactory.newFactory());
+    }
+
+    public void generate() {
         Clock clock = new Clock();
-        SaxJUnitXmlResultWriter saxWriter = new SaxJUnitXmlResultWriter(getHostname(), testResultsProvider, XMLOutputFactory.newFactory());
         Map<String, TestClassResult> results = testResultsProvider.provideResults();
         for (Map.Entry<String, TestClassResult> entry : results.entrySet()) {
             String className = entry.getKey();
             TestClassResult result = entry.getValue();
 
+            File file = new File(testResultsDir, "TEST-" + className + ".xml");
             Writer output = null;
             try {
-                output = new FileWriter(new File(testResultsDir, "TEST-" + className + ".xml"));
+                output = new FileWriter(file);
                 saxWriter.write(className, result, output);
             } catch (IOException e) {
-                throw throwAsUncheckedException(e);
+                throw new GradleException("Problems writing xml test results to file: " + file, e);
             } finally {
                 IOUtils.closeQuietly(output);
             }

@@ -79,7 +79,7 @@ public class SaxJUnitXmlResultWriter {
             writer.writeEndElement();
             writer.writeEndDocument();
         } catch (XMLStreamException e) {
-            throw UncheckedException.throwAsUncheckedException(e);
+            throw new RuntimeException("Problems writing the xml results for class: " + className, e);
         }
     }
 
