@@ -18,10 +18,7 @@ package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.apache.commons.io.IOUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,7 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class CachingFileWriter {
 
-    final LinkedHashMap<File, OutputStream> openFiles = new LinkedHashMap<File, OutputStream>();
+    final LinkedHashMap<File, Writer> openFiles = new LinkedHashMap<File, Writer>();
     private final Lock lock = new ReentrantLock();
     private final int openFilesCount;
 
@@ -42,14 +39,14 @@ public class CachingFileWriter {
     }
 
     public void closeAll() {
-        for (OutputStream outputStream : openFiles.values()) {
-            IOUtils.closeQuietly(outputStream);
+        for (Writer w : openFiles.values()) {
+            IOUtils.closeQuietly(w);
         }
         openFiles.clear();
     }
 
     public void write(File file, String text) {
-        OutputStream out = null;
+        Writer out = null;
         //there are more effective ways of synchronizing below
         //however, this fat lock seems to be very effective anyway (negligible overhead according to the profiler)
         lock.lock();
@@ -57,16 +54,16 @@ public class CachingFileWriter {
             if (openFiles.containsKey(file)) {
                 out = openFiles.get(file);
             } else {
-                out = new FileOutputStream(file, true);
+                out = new BufferedWriter(new FileWriter(file, true));
                 openFiles.put(file, out);
                 if (openFiles.size() > openFilesCount) {
                     //remove first
-                    Iterator<Map.Entry<File, OutputStream>> iterator = openFiles.entrySet().iterator();
+                    Iterator<Map.Entry<File, Writer>> iterator = openFiles.entrySet().iterator();
                     IOUtils.closeQuietly(iterator.next().getValue());
                     iterator.remove();
                 }
             }
-            out.write(text.getBytes());
+            out.write(text);
         } catch (IOException e) {
             IOUtils.closeQuietly(out);
             throw new RuntimeException("Problems writing to file: " + file, e);
