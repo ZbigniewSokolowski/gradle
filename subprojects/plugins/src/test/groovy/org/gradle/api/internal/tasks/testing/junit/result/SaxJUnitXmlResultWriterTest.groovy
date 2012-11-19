@@ -26,32 +26,86 @@ import org.gradle.api.tasks.testing.TestResult
 import static java.util.Collections.emptyList
 import static java.util.Arrays.asList
 import javax.xml.stream.XMLOutputFactory
+import org.gradle.integtests.fixtures.JUnitTestExecutionResult
+import org.gradle.integtests.fixtures.TestClassExecutionResult
+import org.gradle.integtests.fixtures.JUnitTestClassExecutionResult
+
+import static org.hamcrest.core.IsEqual.equalTo
+import static org.hamcrest.Matchers.equalTo
 
 /**
  * by Szczepan Faber, created at: 11/16/12
  */
 class SaxJUnitXmlResultWriterTest extends Specification {
 
-    def provider = Mock(TestResultsProvider)
-    def generator = new SaxJUnitXmlResultWriter("localhost", provider, XMLOutputFactory.newFactory())
+    private provider = Mock(TestResultsProvider)
+    private generator = new SaxJUnitXmlResultWriter("localhost", provider, XMLOutputFactory.newFactory())
 
-    def "test"() {
+    def "writes xml JUnit result"() {
         StringWriter sw = new StringWriter()
-        TestClassResult result = new TestClassResult(System.currentTimeMillis())
+        TestClassResult result = new TestClassResult(new Date(1353344968049).getTime())
         result.add(new TestMethodResult("some test", new DefaultTestResult(TestResult.ResultType.SUCCESS, 10, 25, 1, 1, 0, emptyList())))
+        result.add(new TestMethodResult("some test two", new DefaultTestResult(TestResult.ResultType.SUCCESS, 10, 25, 1, 1, 0, emptyList())))
         result.add(new TestMethodResult("some failing test", new DefaultTestResult(TestResult.ResultType.FAILURE, 15, 25, 1, 0, 1, asList(new RuntimeException("Boo! ]]> cdata check!")))))
+        result.add(new TestMethodResult("some skipped test", new DefaultTestResult(TestResult.ResultType.SKIPPED, 15, 25, 1, 0, 1, asList())))
 
-        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdOut, sw) >> { args ->
+        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdOut, sw) >> {
             sw.write("1st output message\n")
             sw.write("2nd output message\n")
-            sw.write(args[2].transform("cdata check: ]]> end\n"))
+            sw.write("cdata check: ]]&gt; end\n")
         }
-        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdErr, sw) >> { /* no std err */}
+        provider.provideOutputs("com.foo.FooTest", TestOutputEvent.Destination.StdErr, sw) >> { sw.write("err") }
 
         when:
         generator.write("com.foo.FooTest", result, sw)
 
         then:
-        println sw
+        def fooTest = new JUnitTestClassExecutionResult(sw.toString(), "com.foo.FooTest")
+        fooTest.assertTestCount(4, 1, 0)
+        fooTest.assertTestFailed("some failing test", equalTo('java.lang.RuntimeException: Boo! ]]> cdata check!'))
+        fooTest.assertTestsSkipped("some skipped test")
+        fooTest.assertTestsExecuted("some test", "some test two", "some failing test")
+        fooTest.assertStdout(equalTo("""1st output message
+2nd output message
+cdata check: ]]&gt; end
+"""))
+        fooTest.assertStderr(equalTo("err"))
+
+
+        sw.toString().startsWith """<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="com.foo.FooTest" tests="4" failures="1" errors="0" timestamp="2012-11-19T17:09:28" hostname="localhost" time="0.05">
+  <properties/>
+    <testcase name="some test" classname="com.foo.FooTest" time="0.015"></testcase>
+    <testcase name="some test two" classname="com.foo.FooTest" time="0.015"></testcase>
+    <testcase name="some failing test" classname="com.foo.FooTest" time="0.01">
+      <failure message="java.lang.RuntimeException: Boo! ]]&gt; cdata check!" type="java.lang.RuntimeException"><![CDATA[java.lang.RuntimeException: Boo! ]]&gt; cdata check!"""
+
+        sw.toString().endsWith """]]></failure></testcase>
+    <ignored-testcase name="some skipped test" classname="com.foo.FooTest" time="0.01"></ignored-testcase>
+  <system-out><![CDATA[1st output message
+2nd output message
+cdata check: ]]&gt; end
+]]></system-out>
+  <system-err><![CDATA[err]]></system-err>
+</testsuite>"""
     }
+
+    def "writes results with empty outputs"() {
+        StringWriter sw = new StringWriter()
+        TestClassResult result = new TestClassResult(new Date(1353344968049).getTime())
+        result.add(new TestMethodResult("some test", new DefaultTestResult(TestResult.ResultType.SUCCESS, 100, 300, 1, 1, 0, emptyList())))
+
+        when:
+        generator.write("com.foo.FooTest", result, sw)
+
+        then:
+        sw.toString() == """<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="com.foo.FooTest" tests="1" failures="0" errors="0" timestamp="2012-11-19T17:09:28" hostname="localhost" time="0.2">
+  <properties/>
+    <testcase name="some test" classname="com.foo.FooTest" time="0.2"></testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>"""
+    }
+
 }

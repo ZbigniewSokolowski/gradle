@@ -18,7 +18,7 @@ package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.gradle.api.tasks.testing.TestResult;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -26,7 +26,7 @@ import java.util.Set;
  */
 public class TestClassResult {
 
-    Set<TestMethodResult> methodResults = new HashSet<TestMethodResult>();
+    Set<TestMethodResult> methodResults = new LinkedHashSet<TestMethodResult>();
     private final long startTime;
     private int failuresCount;
 
