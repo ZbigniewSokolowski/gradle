@@ -42,7 +42,7 @@ public class CachingFileWriter {
         openFiles.clear();
     }
 
-    public void write(File file, byte[] bytes) {
+    public void write(File file, String text) {
         OutputStream out = null;
         //there are more effective ways of synchronizing below
         //however, this fat lock seems to be very effective anyway (negligible overhead according to the profiler)
@@ -60,7 +60,7 @@ public class CachingFileWriter {
                     iterator.remove();
                 }
             }
-            out.write(bytes);
+            out.write(text.getBytes());
         } catch (IOException e) {
             IOUtils.closeQuietly(out);
             throw throwAsUncheckedException(e);

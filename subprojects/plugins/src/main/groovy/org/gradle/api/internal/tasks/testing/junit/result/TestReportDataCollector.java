@@ -29,22 +29,24 @@ import java.util.*;
  */
 public class TestReportDataCollector implements TestListener, TestOutputListener, TestResultsProvider {
 
-    private final Map<String, TestClassResult> tests = new HashMap<String, TestClassResult>();
+    private final Map<String, TestClassResult> results = new HashMap<String, TestClassResult>();
     private final File resultsDir;
-    private CachingFileWriter cachingFileWriter = new CachingFileWriter();
+    CachingFileWriter cachingFileWriter = new CachingFileWriter();
 
     public TestReportDataCollector(File resultsDir) {
         this.resultsDir = resultsDir;
+        if (!resultsDir.isDirectory()) {
+            throw new IllegalArgumentException("Directory [" + resultsDir + "] for binary test results does not exist or it is not a valid folder.");
+        }
+        if (resultsDir.list().length > 0) {
+            throw new IllegalArgumentException("Directory [" + resultsDir + "] for binary test results must be empty!");
+        }
     }
 
     public void beforeSuite(TestDescriptor suite) {
     }
 
     public void afterSuite(TestDescriptor suite, TestResult result) {
-        TestClassResult classResult = tests.get(suite.getClassName());
-        if (classResult != null) {
-            classResult.setEndTime(result.getEndTime());
-        }
         if (suite.getParent() == null) {
             cachingFileWriter.closeAll();
         }
@@ -56,10 +58,10 @@ public class TestReportDataCollector implements TestListener, TestOutputListener
     public void afterTest(TestDescriptor testDescriptor, TestResult result) {
         if (!testDescriptor.isComposite()) {
             TestMethodResult methodResult = new TestMethodResult(testDescriptor.getName(), result);
-            TestClassResult classResult = tests.get(testDescriptor.getClassName());
+            TestClassResult classResult = results.get(testDescriptor.getClassName());
             if (classResult == null) {
                 classResult = new TestClassResult(result.getStartTime());
-                tests.put(testDescriptor.getClassName(), classResult);
+                results.put(testDescriptor.getClassName(), classResult);
             }
 
             classResult.add(methodResult);
@@ -69,13 +71,13 @@ public class TestReportDataCollector implements TestListener, TestOutputListener
     public void onOutput(TestDescriptor testDescriptor, TestOutputEvent outputEvent) {
         String className = testDescriptor.getClassName();
         if (className == null) {
-            //this means that we receive an output before even starting any class.
+            //this means that we receive an output before even starting any class (or too late).
             //we don't have a place for such output in any of the reports so skipping.
             return;
         }
         //the format is optimized for the junit xml results
         String message = TextUtil.escapeCDATA(outputEvent.getMessage());
-        cachingFileWriter.write(outputsFile(className, outputEvent.getDestination()), message.getBytes());
+        cachingFileWriter.write(outputsFile(className, outputEvent.getDestination()), message);
     }
 
     private File outputsFile(String className, TestOutputEvent.Destination destination) {
@@ -107,6 +109,6 @@ public class TestReportDataCollector implements TestListener, TestOutputListener
     }
 
     public Map<String, TestClassResult> provideResults() {
-        return tests;
+        return results;
     }
 }

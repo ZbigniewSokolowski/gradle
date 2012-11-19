@@ -28,7 +28,6 @@ public class TestClassResult {
 
     Set<TestMethodResult> methodResults = new HashSet<TestMethodResult>();
     private final long startTime;
-    private long endTime;
     private int failuresCount;
 
     public TestClassResult(long startTime) {
@@ -50,10 +49,6 @@ public class TestClassResult {
         return startTime;
     }
 
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
-    }
-
     public int getTestsCount() {
         return methodResults.size();
     }
@@ -63,6 +58,10 @@ public class TestClassResult {
     }
 
     public long getDuration() {
-        return endTime - startTime;
+        long duration = 0;
+        for (TestMethodResult m : methodResults) {
+            duration += m.getDuration();
+        }
+        return duration;
     }
 }
