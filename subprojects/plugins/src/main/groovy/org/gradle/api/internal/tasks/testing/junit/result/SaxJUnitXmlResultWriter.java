@@ -17,9 +17,6 @@
 package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.apache.tools.ant.util.DateUtils;
-import org.gradle.api.internal.tasks.testing.junit.binary.TestClassResult;
-import org.gradle.api.internal.tasks.testing.junit.binary.TestMethodResult;
-import org.gradle.api.internal.tasks.testing.junit.binary.TestResultsProvider;
 import org.gradle.api.tasks.testing.TestOutputEvent;
 import org.gradle.api.tasks.testing.TestResult;
 import org.gradle.internal.UncheckedException;

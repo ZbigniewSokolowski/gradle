@@ -20,6 +20,8 @@ import spock.lang.Specification
 import org.junit.Rule
 import org.gradle.util.TemporaryFolder
 import org.gradle.api.internal.tasks.testing.DefaultTestSuiteDescriptor
+import org.gradle.api.internal.tasks.testing.junit.result.NewJUnitXmlReportGenerator
+import org.gradle.api.internal.tasks.testing.junit.result.TestReportDataCollector
 
 /**
  * by Szczepan Faber, created at: 11/16/12

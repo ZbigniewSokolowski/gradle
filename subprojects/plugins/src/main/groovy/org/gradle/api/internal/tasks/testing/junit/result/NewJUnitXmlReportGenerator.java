@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.tasks.testing.junit.binary;
+package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.apache.commons.io.IOUtils;
-import org.gradle.api.internal.tasks.testing.junit.result.SaxJUnitXmlResultWriter;
 import org.gradle.util.Clock;
 
 import javax.xml.stream.XMLOutputFactory;
