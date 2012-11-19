@@ -22,8 +22,7 @@ import org.gradle.api.tasks.testing.*;
 import org.gradle.internal.UncheckedException;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * by Szczepan Faber, created at: 11/13/12
@@ -45,6 +44,12 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
         if (classResult != null) {
             classResult.setEndTime(result.getEndTime());
         }
+        if (suite.getParent() == null) {
+            for (OutputStream outputStream : openFiles.values()) {
+                IOUtils.closeQuietly(outputStream);
+            }
+            openFiles.clear();
+        }
     }
 
     public void beforeTest(TestDescriptor testDescriptor) {
@@ -63,6 +68,8 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
         }
     }
 
+    LinkedHashMap<String, OutputStream> openFiles = new LinkedHashMap<String, OutputStream>();
+
     public void onOutput(TestDescriptor testDescriptor, TestOutputEvent outputEvent) {
         String className = testDescriptor.getClassName();
         if (className == null) {
@@ -70,20 +77,23 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
             //this means that we receive an output before even starting any class. We don't have a place for such output.
             return;
         }
-        File outputsFile = outputsFile(className, outputEvent.getDestination());
-        ObjectOutputStream out = null;
         try {
-            if (outputsFile.exists()) {
-                out = new AppendingObjectOutputStream(new FileOutputStream(outputsFile, true));
+            OutputStream out;
+            if (openFiles.containsKey(className + outputEvent.getDestination())) {
+                out = openFiles.get(className + outputEvent.getDestination());
             } else {
-                out = new ObjectOutputStream(new FileOutputStream(outputsFile));
+                File outputsFile = outputsFile(className, outputEvent.getDestination());
+                out = new FileOutputStream(outputsFile, true);
+                openFiles.put(className + outputEvent.getDestination(), out);
+                if (openFiles.size() > 10) {
+                    Iterator<Map.Entry<String, OutputStream>> iterator = openFiles.entrySet().iterator();
+                    IOUtils.closeQuietly(iterator.next().getValue());
+                    iterator.remove();
+                }
             }
-            out.writeUTF(outputEvent.getMessage());
-            out.close();
-        } catch (IOException e) {
-            UncheckedException.throwAsUncheckedException(e);
-        } finally {
-            IOUtils.closeQuietly(out);
+            out.write(outputEvent.getMessage().getBytes());
+        } catch(IOException e) {
+            throw UncheckedException.throwAsUncheckedException(e);
         }
     }
 
@@ -104,13 +114,10 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
         if (!file.exists()) {
             return; //test has no outputs
         }
-        ObjectInputStream in = null;
+        FileInputStream in = null;
         try {
-            in = new ObjectInputStream(new FileInputStream(file));
-            while(true) {
-                String outputMessage = in.readUTF();
-                writer.write(transformer.transform(outputMessage));
-            }
+            in = new FileInputStream(file);
+            IOUtils.copy(in, writer);
         } catch (EOFException e) {
             //we're done
             //TODO SF ugly
@@ -118,19 +125,6 @@ public class BinaryReportGenerator implements TestListener, TestOutputListener, 
             throw UncheckedException.throwAsUncheckedException(e);
         } finally {
             IOUtils.closeQuietly(in);
-        }
-    }
-
-    public class AppendingObjectOutputStream extends ObjectOutputStream {
-
-        public AppendingObjectOutputStream(OutputStream out) throws IOException {
-            super(out);
-        }
-
-        @Override
-        protected void writeStreamHeader() throws IOException {
-            //see http://stackoverflow.com/questions/1194656/appending-to-an-objectoutputstream/1195078#1195078
-            reset();
         }
     }
 }
