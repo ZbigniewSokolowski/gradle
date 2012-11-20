@@ -16,23 +16,17 @@
 
 package org.gradle.api.internal.tasks.testing.junit.result
 
+import org.gradle.api.internal.tasks.testing.results.DefaultTestResult
+import org.gradle.api.tasks.testing.TestOutputEvent
+import org.gradle.integtests.fixtures.JUnitTestClassExecutionResult
 import spock.lang.Specification
 
-import org.gradle.api.tasks.testing.TestOutputEvent
-
-import org.gradle.api.internal.tasks.testing.results.DefaultTestResult
-import org.gradle.api.tasks.testing.TestResult
-
-import static java.util.Collections.emptyList
-import static java.util.Arrays.asList
 import javax.xml.stream.XMLOutputFactory
-import org.gradle.integtests.fixtures.JUnitTestExecutionResult
-import org.gradle.integtests.fixtures.TestClassExecutionResult
-import org.gradle.integtests.fixtures.JUnitTestClassExecutionResult
 
-import static org.hamcrest.core.IsEqual.equalTo
-import static org.hamcrest.Matchers.equalTo
+import static java.util.Arrays.asList
+import static java.util.Collections.emptyList
 import static org.gradle.api.tasks.testing.TestResult.ResultType.*
+import static org.hamcrest.Matchers.equalTo
 
 /**
  * by Szczepan Faber, created at: 11/16/12

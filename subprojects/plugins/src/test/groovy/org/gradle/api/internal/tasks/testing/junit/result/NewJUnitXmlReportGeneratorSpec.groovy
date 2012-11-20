@@ -16,11 +16,11 @@
 
 package org.gradle.api.internal.tasks.testing.junit.result
 
-import spock.lang.Specification
-import org.junit.Rule
-import org.gradle.util.TemporaryFolder
-import org.gradle.api.tasks.testing.TestResult
 import org.gradle.api.GradleException
+import org.gradle.api.tasks.testing.TestResult
+import org.gradle.util.TemporaryFolder
+import org.junit.Rule
+import spock.lang.Specification
 
 /**
  * by Szczepan Faber, created at: 11/19/12

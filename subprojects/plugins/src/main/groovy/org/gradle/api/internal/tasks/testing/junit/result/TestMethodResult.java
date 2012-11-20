@@ -18,8 +18,6 @@ package org.gradle.api.internal.tasks.testing.junit.result;
 
 import org.gradle.api.tasks.testing.TestResult;
 
-import java.io.Serializable;
-
 /**
  * by Szczepan Faber, created at: 11/13/12
  */

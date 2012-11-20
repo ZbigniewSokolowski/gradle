@@ -21,11 +21,9 @@ import org.gradle.api.GradleException;
 import org.gradle.api.internal.tasks.testing.TestClassProcessor;
 import org.gradle.api.internal.tasks.testing.TestClassRunInfo;
 import org.gradle.api.internal.tasks.testing.TestResultProcessor;
-import org.gradle.api.internal.tasks.testing.junit.TestNGJUnitXmlReportGenerator;
 import org.gradle.api.internal.tasks.testing.processors.CaptureTestOutputTestResultProcessor;
 import org.gradle.api.tasks.testing.testng.TestNGOptions;
 import org.gradle.internal.id.IdGenerator;
-import org.gradle.listener.ListenerBroadcast;
 import org.gradle.logging.StandardOutputRedirector;
 import org.gradle.util.CollectionUtils;
 import org.gradle.util.GFileUtils;
@@ -44,19 +42,17 @@ public class TestNGTestClassProcessor implements TestClassProcessor {
     private final List<File> suiteFiles;
     private final IdGenerator<?> idGenerator;
     private final StandardOutputRedirector outputRedirector;
-    private final File testResultsDir;
     private final boolean testReportOn;
     private TestNGTestResultProcessorAdapter testResultProcessor;
     private ClassLoader applicationClassLoader;
 
     public TestNGTestClassProcessor(File testReportDir, TestNGOptions options, List<File> suiteFiles, IdGenerator<?> idGenerator,
-                                    StandardOutputRedirector outputRedirector, File testResultsDir, boolean testReportOn) {
+                                    StandardOutputRedirector outputRedirector, boolean testReportOn) {
         this.testReportDir = testReportDir;
         this.options = options;
         this.suiteFiles = suiteFiles;
         this.idGenerator = idGenerator;
         this.outputRedirector = outputRedirector;
-        this.testResultsDir = testResultsDir;
         this.testReportOn = testReportOn;
     }
 

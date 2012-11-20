@@ -27,11 +27,11 @@ import org.gradle.api.internal.tasks.testing.TestFramework;
 import org.gradle.api.internal.tasks.testing.TestResultProcessor;
 import org.gradle.api.internal.tasks.testing.detection.DefaultTestExecuter;
 import org.gradle.api.internal.tasks.testing.detection.TestExecuter;
+import org.gradle.api.internal.tasks.testing.junit.JUnitTestFramework;
 import org.gradle.api.internal.tasks.testing.junit.result.NewJUnitXmlReportGenerator;
 import org.gradle.api.internal.tasks.testing.junit.result.TestReportDataCollector;
-import org.gradle.api.internal.tasks.testing.junit.JUnitTestFramework;
 import org.gradle.api.internal.tasks.testing.logging.*;
-import org.gradle.api.internal.tasks.testing.results.*;
+import org.gradle.api.internal.tasks.testing.results.TestListenerAdapter;
 import org.gradle.api.internal.tasks.testing.testng.TestNGTestFramework;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.specs.Spec;
@@ -400,10 +400,11 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
         addTestListener(eventLogger);
         addTestOutputListener(eventLogger);
 
+        File binaryResultsDir = new File(getTemporaryDir(), "binary-test-results");
         TestReportDataCollector testReportDataCollector = null;
         if (testReport && testFramework instanceof TestNGTestFramework) {
             //TODO SF this is obviously work in progress
-            File binaryResultsDir = new File(getTemporaryDir(), "binary-test-results");
+
             getProject().delete(binaryResultsDir);
             getProject().mkdir(binaryResultsDir);
 
@@ -422,7 +423,8 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
         testExecuter.execute(this, resultProcessor);
 
         if (testReportDataCollector != null) {
-            new NewJUnitXmlReportGenerator().generate(getTestResultsDir(), testReportDataCollector);
+            new NewJUnitXmlReportGenerator(getTestResultsDir(), testReportDataCollector).generate();
+            getProject().delete(binaryResultsDir);
         }
 
         testFramework.report();

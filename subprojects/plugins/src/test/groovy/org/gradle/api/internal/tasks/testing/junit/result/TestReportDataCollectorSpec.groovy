@@ -153,6 +153,8 @@ class TestReportDataCollectorSpec extends Specification {
         collector.onOutput(test2, new DefaultTestOutputEvent(StdOut, "out"))
         collector.onOutput(test3, new DefaultTestOutputEvent(StdOut, "out, don't show"))
 
+        collector.afterSuite(new DefaultTestSuiteDescriptor("1", "suite"), null) //force closing of files
+
         then:
         StringWriter sw = new StringWriter()
         collector.provideOutputs("FooTest", StdErr, sw)

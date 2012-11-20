@@ -68,6 +68,8 @@ class CachingFileWriterSpec extends Specification {
         writer.write(temp.file("2.txt"), "b")
         writer.write(temp.file("3.txt"), "c")
 
+        writer.closeAll()
+
         then:
         temp.file("1.txt").text == '1a'
         temp.file("2.txt").text == '2b'
